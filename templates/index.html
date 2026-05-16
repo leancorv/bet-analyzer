@@ -275,17 +275,36 @@ async function runAnalysis(){
   resetFlow(); advanceFlow(0);
   currentStep=0;
   stepInterval=setInterval(()=>{currentStep++;if(currentStep<STEPS.length)advanceFlow(currentStep);else clearInterval(stepInterval);},3800);
-  try{
-    const res=await fetch(`/analyze?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&competition=${competition}`);
-    const data=await res.json();
-    clearInterval(stepInterval); completeFlow();
-    setTimeout(()=>{loader.style.display='none';renderResults(home,away,data);btn.disabled=false;btn.textContent='Analizar →';},700);
-  }catch(err){
-    clearInterval(stepInterval); loader.style.display='none';
-    document.getElementById('results').style.display='block';
-    document.getElementById('results').innerHTML=`<div style="background:#fdeaed;border:1px solid #f5c6cb;border-radius:12px;padding:1rem;color:#c0392b;font-size:0.9rem">⚠️ Error al conectar con el agente.</div>`;
-    btn.disabled=false; btn.textContent='Analizar →';
-  }
+    try{
+        const res=await fetch(`/analyze?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&competition=${competition}`);
+        const data=await res.json();
+        clearInterval(stepInterval);
+
+        // ← NUEVO: chequear si el backend devolvió un error
+        if(data.error){
+        loader.style.display='none';
+        document.getElementById('results').style.display='block';
+        document.getElementById('results').innerHTML=`
+            <div style="background:#fff3e0;border:1.5px solid #FFD4B0;border-radius:12px;padding:1.25rem;display:flex;gap:12px;align-items:flex-start">
+            <div style="font-size:1.5rem">⚠️</div>
+            <div>
+                <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#E55A00;margin-bottom:4px">Error del agente</div>
+                <div style="font-size:0.9rem;color:#4A2800">${data.error}</div>
+            </div>
+            </div>`;
+        btn.disabled=false; btn.textContent='Analizar →';
+        return;
+        }
+
+        completeFlow();
+        setTimeout(()=>{loader.style.display='none';renderResults(home,away,data);btn.disabled=false;btn.textContent='Analizar →';},700);
+
+    }catch(err){
+        clearInterval(stepInterval); loader.style.display='none';
+        document.getElementById('results').style.display='block';
+        document.getElementById('results').innerHTML=`<div style="background:#fdeaed;border:1px solid #f5c6cb;border-radius:12px;padding:1rem;color:#c0392b;font-size:0.9rem">⚠️ Error al conectar con el agente.</div>`;
+        btn.disabled=false; btn.textContent='Analizar →';
+    }
 }
 
 function pills(form){

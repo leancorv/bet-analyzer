@@ -12,31 +12,41 @@ def index():
 
 @app.route("/analyze", methods=["POST", "GET"])
 def run_analysis():
-    home = request.args.get("home", "Arsenal")
-    away = request.args.get("away", "Burnley")
-    competition = request.args.get("competition", "PL")
+    try:
+        home = request.args.get("home", "").strip()
+        away = request.args.get("away", "").strip()
+        competition = request.args.get("competition", "PL")
 
-    home_team = search_team(home, competition=competition)
-    away_team = search_team(away, competition=competition)
+        if not home or not away:
+            return jsonify({"error": "Ingresá ambos equipos para continuar."}), 400
 
-    if not home_team or not away_team:
-        return jsonify({"error": "Equipo no encontrado"}), 404
+        home_team = search_team(home, competition=competition)
+        away_team = search_team(away, competition=competition)
 
-    # Data cruda
-    home_matches = get_recent_matches(home_team["id"])
-    away_matches = get_recent_matches(away_team["id"])
-    h2h = get_head_to_head(home_team["id"], away_team["id"])
-    stats = format_for_llm(home_team["name"], away_team["name"],
-                           home_matches, away_matches, h2h)
+        if not home_team:
+            return jsonify({"error": f"No encontré el equipo '{home}' en {competition}. Verificá el nombre."}), 404
+        if not away_team:
+            return jsonify({"error": f"No encontré el equipo '{away}' en {competition}. Verificá el nombre."}), 404
+    
 
-    news = get_match_context(home, away)
+        # Data cruda
+        home_matches = get_recent_matches(home_team["id"])
+        away_matches = get_recent_matches(away_team["id"])
+        h2h = get_head_to_head(home_team["id"], away_team["id"])
+        stats = format_for_llm(home_team["name"], away_team["name"],
+                            home_matches, away_matches, h2h)
 
-    odds_data = get_odds(home, away, sport="soccer_epl")
-    odds_text = format_odds(odds_data) if odds_data else "Sin cuotas disponibles"
+        news = get_match_context(home, away)
 
-    # LLM analysis
-    analysis = analyze(home_team["name"], away_team["name"],
-                      stats, news, odds_text)
+        odds_data = get_odds(home, away, sport="soccer_epl")
+        odds_text = format_odds(odds_data) if odds_data else "Sin cuotas disponibles"
+
+        # LLM analysis
+        analysis = analyze(home_team["name"], away_team["name"],
+                        stats, news, odds_text)
+    except Exception as e:
+        print(f"Error en analyze: {e}")
+        return jsonify({"error": "El agente encontró un problema inesperado. Intentá de nuevo en unos segundos."}), 500
 
     # Calcular forma como G/E/P
     def calc_form(matches, team_name):
