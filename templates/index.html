@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetAnalyzer AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #FF6B00;
+    --orange-light: #FFF0E6;
+    --orange-mid: #FFD4B0;
+    --green: #00A847;
+    --green-light: #E6F7EE;
+    --red: #E8193C;
+    --yellow: #F5A623;
+    --bg: #F2F4F7;
+    --surface: #FFFFFF;
+    --surface2: #F8F9FB;
+    --border: #E2E6ED;
+    --border-strong: #C8CDD8;
+    --text-primary: #0D1117;
+    --text-secondary: #4A5568;
+    --text-muted: #8A95A3;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Barlow',sans-serif; background:var(--bg); color:var(--text-primary); min-height:100vh; }
+
+  /* HEADER */
+  header { background:var(--orange); padding:0 2rem; height:56px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 8px rgba(255,107,0,0.3); position:sticky; top:0; z-index:100; }
+  .logo { font-family:'Barlow Condensed',sans-serif; font-size:1.5rem; font-weight:900; color:white; letter-spacing:-0.01em; }
+  .logo span { opacity:0.8; font-weight:500; }
+  .live-badge { display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.15); border-radius:20px; padding:5px 12px; }
+  .live-dot { width:6px; height:6px; background:#fff; border-radius:50%; animation:blink 1.5s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .live-badge span { font-size:0.7rem; font-weight:700; color:white; letter-spacing:0.06em; text-transform:uppercase; }
+
+  main { max-width:960px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+
+  /* FORM */
+  .form-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow-md); padding:1.5rem; margin-bottom:1.25rem; border:1px solid var(--border); }
+  .section-title { font-size:0.65rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:1rem; display:flex; align-items:center; gap:6px; }
+  .section-title::before { content:''; display:inline-block; width:3px; height:12px; background:var(--orange); border-radius:2px; }
+  .form-grid { display:grid; grid-template-columns:1fr 56px 1fr; gap:0.75rem; align-items:end; margin-bottom:0.875rem; }
+  .vs-c { display:flex; align-items:center; justify-content:center; padding-bottom:0.5rem; font-family:'Barlow Condensed',sans-serif; font-size:1rem; font-weight:800; color:var(--text-muted); }
+  .field label { display:block; font-size:0.67rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-secondary); margin-bottom:5px; }
+  .field input, .field select { width:100%; border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:0.625rem 0.875rem; font-family:'Barlow',sans-serif; font-size:0.92rem; color:var(--text-primary); background:var(--surface2); outline:none; transition:border-color 0.15s, box-shadow 0.15s; }
+  .field input:focus, .field select:focus { border-color:var(--orange); box-shadow:0 0 0 3px rgba(255,107,0,0.1); background:white; }
+  .form-bottom { display:grid; grid-template-columns:1fr auto; gap:0.75rem; align-items:end; }
+  .btn { background:var(--orange); color:white; border:none; border-radius:var(--radius-sm); padding:0.675rem 1.75rem; font-family:'Barlow Condensed',sans-serif; font-size:1rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; white-space:nowrap; box-shadow:0 2px 8px rgba(255,107,0,0.25); }
+  .btn:hover:not(:disabled) { background:#E55A00; transform:translateY(-1px); box-shadow:0 4px 12px rgba(255,107,0,0.35); }
+  .btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+  /* LOADER */
+  #loader { display:none; background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow-md); border:1px solid var(--border); padding:2rem; margin-bottom:1.25rem; position:relative; overflow:hidden; }
+  #loader::after { content:''; position:absolute; top:0; left:-100%; width:60%; height:3px; background:linear-gradient(90deg,transparent,var(--orange),transparent); animation:scan 1.8s ease-in-out infinite; }
+  @keyframes scan { 0%{left:-60%} 100%{left:120%} }
+  .loader-label { font-size:0.67rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:1.5rem; text-align:center; }
+  .flow-wrap { display:flex; align-items:center; justify-content:center; }
+  .fn { display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; }
+  .fbox { width:68px; height:68px; border-radius:10px; background:var(--surface2); border:1.5px solid var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; position:relative; transition:all 0.3s; }
+  .fbox.active { border-color:var(--orange); background:var(--orange-light); box-shadow:0 0 0 4px rgba(255,107,0,0.1); }
+  .fbox.done { border-color:var(--green); background:var(--green-light); }
+  .fbox.done::after { content:'✓'; position:absolute; top:-8px; right:-8px; width:18px; height:18px; background:var(--green); border-radius:50%; font-size:10px; color:white; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .ficon { font-size:1.25rem; line-height:1; }
+  .flabel { font-size:0.57rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted); }
+  .fbox.active .flabel { color:var(--orange); }
+  .fbox.done .flabel { color:var(--green); }
+  .fpulse { position:absolute; bottom:5px; width:5px; height:5px; background:var(--orange); border-radius:50%; opacity:0; }
+  .fbox.active .fpulse { opacity:1; animation:fp 1s ease-in-out infinite; }
+  @keyframes fp { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(2);opacity:0.3} }
+  .fc { width:32px; display:flex; align-items:center; margin-bottom:20px; flex-shrink:0; }
+  .fline { flex:1; height:1.5px; background:var(--border); position:relative; overflow:hidden; }
+  .fline.active::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,var(--orange),transparent); animation:fl 0.7s ease-in-out infinite; }
+  @keyframes fl { 0%{left:-100%} 100%{left:100%} }
+  .farrow { width:0; height:0; border-top:4px solid transparent; border-bottom:4px solid transparent; border-left:5px solid var(--border-strong); flex-shrink:0; }
+  .farrow.active { border-left-color:var(--orange); }
+  .loader-status { text-align:center; margin-top:1.25rem; font-size:0.82rem; color:var(--text-muted); min-height:18px; }
+  .loader-status b { color:var(--orange); font-weight:600; }
+
+  /* RESULTS */
+  #results { display:none; }
+
+  /* MATCH HEADER */
+  .match-header { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow-md); border:1px solid var(--border); overflow:hidden; margin-bottom:1rem; }
+  .mh-top { background:var(--orange); padding:0.5rem 1.25rem; display:flex; align-items:center; justify-content:space-between; }
+  .mh-league { font-size:0.67rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.9); }
+  .mh-body { padding:1.5rem; display:grid; grid-template-columns:1fr auto 1fr; gap:1rem; align-items:center; }
+  .team-col { display:flex; flex-direction:column; gap:8px; }
+  .team-col.right { align-items:flex-end; }
+  .team-role { display:inline-block; font-size:0.62rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); padding:2px 8px; border-radius:4px; }
+  .team-name-big { font-family:'Barlow Condensed',sans-serif; font-size:1.5rem; font-weight:800; line-height:1.1; }
+  .form-pills { display:flex; gap:3px; }
+  .team-col.right .form-pills { flex-direction:row-reverse; }
+  .pill { width:22px; height:22px; border-radius:4px; font-size:0.64rem; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .pill-G { background:var(--green); color:white; }
+  .pill-E { background:var(--yellow); color:white; }
+  .pill-P { background:var(--red); color:white; }
+  .pill-empty { background:var(--border); color:var(--text-muted); }
+  .center-col { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .vs-big { font-family:'Barlow Condensed',sans-serif; font-size:2rem; font-weight:900; color:var(--orange); line-height:1; }
+  .conf-block { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .conf-lbl { font-size:0.6rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); }
+  .conf-num { font-family:'Barlow Condensed',sans-serif; font-size:2rem; font-weight:900; color:var(--orange); line-height:1; }
+  .conf-pips { display:flex; gap:2px; }
+  .pip { width:8px; height:4px; border-radius:2px; background:var(--border); }
+  .pip.on { background:var(--orange); }
+
+  /* ODDS */
+  .odds-bar { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1rem; }
+  .odd-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:1.1rem; text-align:center; position:relative; }
+  .odd-card.rec { border-color:var(--orange); box-shadow:var(--shadow-md); }
+  .rec-badge { display:none; position:absolute; top:-11px; left:50%; transform:translateX(-50%); background:var(--orange); color:white; font-size:0.55rem; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; padding:3px 10px; border-radius:10px; white-space:nowrap; }
+  .odd-card.rec .rec-badge { display:block; }
+  .odd-outcome { font-size:0.64rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; }
+  .odd-team { font-size:0.73rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; min-height:17px; }
+  .odd-num { font-family:'Barlow Condensed',sans-serif; font-size:2.2rem; font-weight:900; color:var(--green); line-height:1; margin-bottom:2px; }
+  .odd-prob { font-size:0.68rem; color:var(--text-muted); margin-bottom:5px; }
+  .vtag { display:inline-block; background:var(--orange-light); border:1px solid var(--orange-mid); color:var(--orange); font-size:0.57rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; padding:2px 7px; border-radius:4px; }
+
+  /* H2H */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:1.25rem; margin-bottom:1rem; }
+  .h2h-grid { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:1rem; margin-bottom:0.875rem; }
+  .h2h-team { display:flex; flex-direction:column; gap:3px; }
+  .h2h-team.r { align-items:flex-end; }
+  .h2h-tname { font-size:0.73rem; font-weight:600; color:var(--text-secondary); }
+  .h2h-wins { font-family:'Barlow Condensed',sans-serif; font-size:2rem; font-weight:900; line-height:1; color:var(--text-primary); }
+  .h2h-pct { font-size:0.68rem; color:var(--text-muted); }
+  .h2h-center { display:flex; flex-direction:column; align-items:center; gap:1px; }
+  .h2h-draws { font-family:'Barlow Condensed',sans-serif; font-size:1.3rem; font-weight:800; color:var(--yellow); }
+  .h2h-dl { font-size:0.6rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); }
+  .h2h-bar { height:6px; background:var(--border); border-radius:3px; overflow:hidden; display:flex; }
+  .hb-h { background:var(--orange); height:100%; }
+  .hb-d { background:var(--yellow); height:100%; }
+  .hb-a { background:var(--border-strong); height:100%; }
+  .no-h2h { text-align:center; padding:0.75rem; color:var(--text-muted); font-size:0.82rem; font-style:italic; }
+
+  /* VALUE BETS */
+  .vb-section { background:var(--orange-light); border:1.5px solid var(--orange-mid); border-radius:var(--radius); padding:1.1rem; margin-bottom:1rem; }
+  .vb-chips { display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.75rem; }
+  .vb-chip { background:white; border:1.5px solid var(--orange-mid); border-radius:var(--radius-sm); padding:0.6rem 1rem; }
+  .vb-out { font-size:0.6rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--orange); }
+  .vb-odd { font-family:'Barlow Condensed',sans-serif; font-size:1.3rem; font-weight:900; color:var(--text-primary); line-height:1; }
+  .vb-edge { font-size:0.7rem; color:var(--green); font-weight:600; }
+  .vb-avg { font-size:0.63rem; color:var(--text-muted); }
+
+  /* RECOM */
+  .recom { background:var(--surface); border:1.5px solid var(--orange); border-radius:var(--radius); box-shadow:var(--shadow-md); padding:1.25rem; margin-bottom:1rem; display:flex; gap:0.875rem; align-items:flex-start; }
+  .recom-ico { font-size:1.8rem; flex-shrink:0; margin-top:2px; }
+  .recom-ey { font-size:0.64rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--orange); margin-bottom:4px; }
+  .recom-txt { font-size:0.88rem; color:var(--text-primary); line-height:1.65; }
+
+  /* ANALYSIS */
+  .analysis-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
+  .a-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:1.1rem; }
+  .a-card.full { grid-column:1/-1; }
+  .card-text { font-size:0.84rem; color:var(--text-secondary); line-height:1.65; }
+
+  .disclaimer { text-align:center; font-size:0.67rem; color:var(--text-muted); padding-top:1.5rem; line-height:1.6; border-top:1px solid var(--border); margin-top:0.5rem; }
+
+  /* ANIM */
+  .fu { animation:fadeUp 0.4s ease forwards; opacity:0; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:600px){
+    .form-grid{grid-template-columns:1fr}.vs-c{display:none}
+    .form-bottom{grid-template-columns:1fr}
+    .mh-body{grid-template-columns:1fr;gap:0.5rem}
+    .team-col.right{align-items:flex-start}
+    .analysis-grid{grid-template-columns:1fr}
+    .odds-bar{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Bet<span>Analyzer</span> AI</div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    <span>Agente activo</span>
+  </div>
+</header>
+
+<main>
+  <div class="form-card">
+    <div class="section-title">Seleccioná el partido</div>
+    <div class="form-grid">
+      <div class="field"><label>Equipo Local</label><input type="text" id="homeTeam" placeholder="ej: Arsenal" value="Arsenal"></div>
+      <div class="vs-c">VS</div>
+      <div class="field"><label>Equipo Visitante</label><input type="text" id="awayTeam" placeholder="ej: Burnley" value="Burnley"></div>
+    </div>
+    <div class="form-bottom">
+      <div class="field">
+        <label>Competición</label>
+        <select id="competition">
+          <option value="PL">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</option>
+          <option value="PD">🇪🇸 La Liga</option>
+          <option value="BL1">🇩🇪 Bundesliga</option>
+          <option value="SA">🇮🇹 Serie A</option>
+          <option value="CL">🏆 Champions League</option>
+        </select>
+      </div>
+      <button class="btn" id="analyzeBtn" onclick="runAnalysis()">Analizar →</button>
+    </div>
+  </div>
+
+  <div id="loader">
+    <div class="loader-label">Agente procesando</div>
+    <div class="flow-wrap">
+      <div class="fn"><div class="fbox" id="fn-0"><div class="ficon">⚽</div><div class="flabel">Stats</div><div class="fpulse"></div></div></div>
+      <div class="fc"><div class="fline" id="fl-0"></div><div class="farrow" id="fa-0"></div></div>
+      <div class="fn"><div class="fbox" id="fn-1"><div class="ficon">📰</div><div class="flabel">Noticias</div><div class="fpulse"></div></div></div>
+      <div class="fc"><div class="fline" id="fl-1"></div><div class="farrow" id="fa-1"></div></div>
+      <div class="fn"><div class="fbox" id="fn-2"><div class="ficon">💰</div><div class="flabel">Cuotas</div><div class="fpulse"></div></div></div>
+      <div class="fc"><div class="fline" id="fl-2"></div><div class="farrow" id="fa-2"></div></div>
+      <div class="fn"><div class="fbox" id="fn-3"><div class="ficon">🤖</div><div class="flabel">LLM</div><div class="fpulse"></div></div></div>
+      <div class="fc"><div class="fline" id="fl-3"></div><div class="farrow" id="fa-3"></div></div>
+      <div class="fn"><div class="fbox" id="fn-4"><div class="ficon">📊</div><div class="flabel">Reporte</div><div class="fpulse"></div></div></div>
+    </div>
+    <div class="loader-status" id="loaderStatus">Iniciando agente...</div>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<script>
+const STEPS=[
+  {msg:"Buscando estadísticas y enfrentamientos directos..."},
+  {msg:"Rastreando lesionados, suspendidos y noticias..."},
+  {msg:"Consultando cuotas en 23 casas de apuestas..."},
+  {msg:"LLM sintetizando toda la información..."},
+  {msg:"Generando reporte final..."},
+];
+let stepInterval=null, currentStep=0;
+
+function resetFlow(){
+  for(let i=0;i<5;i++) document.getElementById(`fn-${i}`)?.classList.remove('active','done');
+  for(let i=0;i<4;i++){document.getElementById(`fl-${i}`)?.classList.remove('active');document.getElementById(`fa-${i}`)?.classList.remove('active');}
+  currentStep=0;
+}
+
+function advanceFlow(step){
+  if(step>0){
+    document.getElementById(`fn-${step-1}`)?.classList.replace('active','done');
+    document.getElementById(`fl-${step-1}`)?.classList.remove('active');
+    document.getElementById(`fa-${step-1}`)?.classList.add('active');
+  }
+  document.getElementById(`fn-${step}`)?.classList.add('active');
+  if(step<4) document.getElementById(`fl-${step}`)?.classList.add('active');
+  document.getElementById('loaderStatus').innerHTML=`<b>${STEPS[step].msg}</b>`;
+}
+
+function completeFlow(){
+  for(let i=0;i<5;i++){const n=document.getElementById(`fn-${i}`);if(n){n.classList.remove('active');n.classList.add('done');}}
+  document.getElementById('loaderStatus').innerHTML=`<b>¡Análisis completado!</b>`;
+}
+
+async function runAnalysis(){
+  const home=document.getElementById('homeTeam').value.trim();
+  const away=document.getElementById('awayTeam').value.trim();
+  const competition=document.getElementById('competition').value;
+  if(!home||!away) return;
+  const btn=document.getElementById('analyzeBtn');
+  btn.disabled=true; btn.textContent='Analizando...';
+  document.getElementById('results').style.display='none';
+  document.getElementById('results').innerHTML='';
+  const loader=document.getElementById('loader');
+  loader.style.display='block';
+  resetFlow(); advanceFlow(0);
+  currentStep=0;
+  stepInterval=setInterval(()=>{currentStep++;if(currentStep<STEPS.length)advanceFlow(currentStep);else clearInterval(stepInterval);},3800);
+  try{
+    const res=await fetch(`/analyze?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&competition=${competition}`);
+    const data=await res.json();
+    clearInterval(stepInterval); completeFlow();
+    setTimeout(()=>{loader.style.display='none';renderResults(home,away,data);btn.disabled=false;btn.textContent='Analizar →';},700);
+  }catch(err){
+    clearInterval(stepInterval); loader.style.display='none';
+    document.getElementById('results').style.display='block';
+    document.getElementById('results').innerHTML=`<div style="background:#fdeaed;border:1px solid #f5c6cb;border-radius:12px;padding:1rem;color:#c0392b;font-size:0.9rem">⚠️ Error al conectar con el agente.</div>`;
+    btn.disabled=false; btn.textContent='Analizar →';
+  }
+}
+
+function pills(form){
+  if(!form||!form.length) return Array(5).fill('<div class="pill pill-empty">?</div>').join('');
+  return form.map(r=>`<div class="pill pill-${r}">${r}</div>`).join('');
+}
+
+function renderResults(home,away,d){
+  const el=document.getElementById('results');
+  el.style.display='block';
+  const conf=d.confianza||0;
+  const pips=Array.from({length:10},(_,i)=>`<div class="pip ${i<conf?'on':''}"></div>`).join('');
+  const homeName=d.home_name||home;
+  const awayName=d.away_name||away;
+  const resultado=d.resultado_probable||'1';
+  const odds=d.odds;
+  const homeOdd=odds?.best?.home||'—';
+  const drawOdd=odds?.best?.draw||'—';
+  const awayOdd=odds?.best?.away||'—';
+  const homeProb=odds?.implied?.home?`${odds.implied.home}%`:'—';
+  const drawProb=odds?.implied?.draw?`${odds.implied.draw}%`:'—';
+  const awayProb=odds?.implied?.away?`${odds.implied.away}%`:'—';
+  const valueBets=odds?.value_bets||[];
+  const vbMap={};valueBets.forEach(vb=>{vbMap[vb.outcome]=vb;});
+  const bkCount=odds?.bookmakers_count||0;
+  function isRec(o){return(o==='home'&&resultado==='1')||(o==='draw'&&resultado==='X')||(o==='away'&&resultado==='2');}
+  const h2h=d.h2h_stats||{};
+  const totalH2H=h2h.total||0;
+
+  const h2hHtml=totalH2H>0?`
+    <div class="h2h-grid">
+      <div class="h2h-team"><div class="h2h-tname">${homeName}</div><div class="h2h-wins">${h2h.home_wins}</div><div class="h2h-pct">${h2h.home_pct}% victorias</div></div>
+      <div class="h2h-center"><div class="h2h-draws">${h2h.draws}</div><div class="h2h-dl">Empates</div></div>
+      <div class="h2h-team r"><div class="h2h-tname">${awayName}</div><div class="h2h-wins">${h2h.away_wins}</div><div class="h2h-pct">${h2h.away_pct}% victorias</div></div>
+    </div>
+    <div class="h2h-bar"><div class="hb-h" style="width:${h2h.home_pct}%"></div><div class="hb-d" style="width:${h2h.draw_pct}%"></div><div class="hb-a" style="width:${h2h.away_pct}%"></div></div>
+    <div style="margin-top:6px;font-size:0.65rem;color:var(--text-muted);text-align:center">${totalH2H} enfrentamientos analizados</div>
+  `:`<div class="no-h2h">Sin enfrentamientos recientes entre estos equipos</div>`;
+
+  const vbHtml=valueBets.length>0?`
+    <div class="vb-section fu" style="animation-delay:0.25s">
+      <div class="section-title">⚡ Value Bets detectados — ${bkCount} casas consultadas</div>
+      <div class="vb-chips">
+        ${valueBets.map(vb=>`
+          <div class="vb-chip">
+            <div class="vb-out">${vb.outcome==='home'?`Local`:`${vb.outcome==='away'?'Visitante':'Empate'}`}</div>
+            <div class="vb-odd">${vb.best_odd}</div>
+            <div class="vb-edge">+${vb.edge}% edge</div>
+            <div class="vb-avg">Promedio: ${vb.avg_odd}</div>
+          </div>`).join('')}
+      </div>
+    </div>`:'';
+
+  el.innerHTML=`
+    <div class="match-header fu">
+      <div class="mh-top"><div class="mh-league">Análisis IA · ${document.getElementById('competition').options[document.getElementById('competition').selectedIndex].text.replace(/[^\w\s]/gi,'').trim()}</div></div>
+      <div class="mh-body">
+        <div class="team-col"><div class="team-role">Local</div><div class="team-name-big">${homeName}</div><div class="form-pills">${pills(d.home_form)}</div></div>
+        <div class="center-col">
+          <div class="vs-big">VS</div>
+          <div class="conf-block"><div class="conf-lbl">Confianza</div><div class="conf-num">${conf}<span style="font-size:1rem;color:var(--text-muted)">/10</span></div><div class="conf-pips">${pips}</div></div>
+        </div>
+        <div class="team-col right"><div class="team-role">Visitante</div><div class="team-name-big">${awayName}</div><div class="form-pills">${pills(d.away_form)}</div></div>
+      </div>
+    </div>
+
+    <div class="odds-bar">
+      ${['home','draw','away'].map((o,i)=>{
+        const label=o==='home'?'Local':o==='draw'?'Empate':'Visitante';
+        const tm=o==='home'?homeName:o==='away'?awayName:'';
+        const odd=o==='home'?homeOdd:o==='draw'?drawOdd:awayOdd;
+        const prob=o==='home'?homeProb:o==='draw'?drawProb:awayProb;
+        const vb=vbMap[o];
+        return`<div class="odd-card ${isRec(o)?'rec':''} fu" style="animation-delay:${0.1+i*0.07}s">
+          <div class="rec-badge">Recomendado</div>
+          <div class="odd-outcome">${label}</div>
+          <div class="odd-team">${tm}</div>
+          <div class="odd-num">${odd}</div>
+          <div class="odd-prob">Prob. implícita: ${prob}</div>
+          ${vb?`<div class="vtag">VALUE +${vb.edge}%</div>`:''}
+        </div>`;}).join('')}
+    </div>
+
+    <div class="card fu" style="animation-delay:0.2s">
+      <div class="section-title">Head to Head</div>
+      ${h2hHtml}
+    </div>
+
+    ${vbHtml}
+
+    <div class="recom fu" style="animation-delay:0.3s">
+      <div class="recom-ico">🎯</div>
+      <div><div class="recom-ey">Recomendación del agente</div><div class="recom-txt">${d.recomendacion||'—'}</div></div>
+    </div>
+
+    <div class="analysis-grid">
+      <div class="a-card fu" style="animation-delay:0.35s"><div class="section-title">Forma Local</div><div class="card-text">${d.forma_local||'—'}</div></div>
+      <div class="a-card fu" style="animation-delay:0.4s"><div class="section-title">Forma Visitante</div><div class="card-text">${d.forma_visitante||'—'}</div></div>
+      <div class="a-card fu" style="animation-delay:0.45s"><div class="section-title">Contexto</div><div class="card-text">${d.contexto||'—'}</div></div>
+      <div class="a-card fu" style="animation-delay:0.5s"><div class="section-title">Análisis de Cuotas</div><div class="card-text">${d.analisis_cuotas||'—'}</div></div>
+    </div>
+
+    <div class="disclaimer">Análisis generado por inteligencia artificial con fines informativos únicamente.<br>No constituye asesoramiento financiero. Jugá responsablemente. +18.</div>
+  `;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter')runAnalysis();});
+</script>
+</body>
+</html>
